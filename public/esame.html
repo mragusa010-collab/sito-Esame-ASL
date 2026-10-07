@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Esame Teorico · Soccorritori ASL Napoli</title>
+<style>
+:root{--bg:#0B1826;--panel:#0F2033;--card:#152A40;--ink:#EAF1FA;--muted:#93A7BC;--line:#22384E;--gold:#E0A91F;--accent:#2E8BF0;--ok:#2ea043;--bad:#E5484D;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="light"]{--bg:#F3F7FC;--panel:#fff;--card:#fff;--ink:#0E2238;--muted:#5A6B7D;--line:#DCE5EF}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,Segoe UI,system-ui,sans-serif}
+button{font:inherit;cursor:pointer}input{font:inherit}
+.center{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px;max-width:420px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;font-size:1.1rem;font-weight:700}
+.f{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);margin-bottom:10px}
+.btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-weight:600}
+.btn.gold{background:var(--gold);color:#1a1200}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);width:auto}
+.link{background:none;border:none;color:var(--muted);text-decoration:underline;font-size:.85rem;width:100%;margin-top:12px}
+.hide{display:none!important}
+.app{max-width:760px;margin:0 auto;padding:20px}
+.top{display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));border-bottom:1px solid var(--line);background:var(--panel)}
+.top .sp{flex:1}
+.qn{color:var(--gold);font-weight:700;margin-bottom:6px}
+.qc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px}
+.opt{display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);margin-top:8px}
+.opt.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.bar{display:flex;gap:10px;align-items:center;padding:14px 20px}
+.pill{font-size:.78rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}
+.big{font-size:2.4rem;font-weight:800;text-align:center;margin:10px 0}
+.code{font-family:monospace;font-size:1.1rem;background:var(--panel);padding:2px 8px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<div id="gate" class="center">
+<div class="card">
+<div class="logo">🏥 Esame Teorico · Soccorritori ASL Napoli</div>
+<input class="f" id="name" placeholder="Nome e cognome">
+<input class="f" id="code" placeholder="Codice di accesso" style="text-transform:uppercase">
+<button class="btn" id="startBtn">Inizia l'esame</button>
+<button class="link" id="showAdmin">Area istruttori</button>
+</div>
+</div>
+
+<div id="adminGate" class="center hide">
+<div class="card">
+<div class="logo">🏥 Area istruttori</div>
+<input class="f" id="au" placeholder="Nome utente">
+<input class="f" id="ap" type="password" placeholder="Password">
+<button class="btn gold" id="adminBtn">Accedi</button>
+<button class="link" id="backGate">← Torna all'esame</button>
+</div>
+</div>
+
+<div id="admin" class="hide">
+<div class="top">🏥<b>Pannello istruttori</b><span class="sp"></span><button class="btn ghost" onclick="location.reload()">Esci</button></div>
+<div class="app">
+<p><button class="btn gold" id="genBtn" style="width:auto;padding:10px 18px">+ Genera nuovo codice</button></p>
+<table id="codeTbl"><thead><tr><th>Codice</th><th>Stato</th><th>Candidato</th><th>Esito</th></tr></thead><tbody></tbody></table>
+</div>
+</div>
+
+<div id="exam" class="hide">
+<div class="top">🏥<b>Esame Teorico</b><span class="pill" id="prog"></span></div>
+<div class="app" id="qWrap"></div>
+<div class="bar"><span class="sp"></span><button class="btn" id="submitBtn" style="width:auto;padding:12px 24px">Consegna l'esame</button></div>
+</div>
+
+<div id="result" class="center hide">
+<div class="card">
+<div class="logo">🏥 Risultato</div>
+<div class="big" id="scoreBig"></div>
+<p id="scoreMsg" style="text-align:center"></p>
+</div>
+</div>
+
+<script>
+const ADMIN_USER='ISTRUTTORE-ASL-NAPOLI', ADMIN_PASS='c0rs1naples2026', PASS_PCT=0.8;
+const Q=[
+['Quali sono i cinque dati da comunicare al 112/118?',['Dove, cosa è successo, quante persone, come stanno, chi sei','Solo l\'indirizzo','Nome del paziente e codice fiscale','Il numero di targa dei veicoli coinvolti'],0],
+['Cosa significa il codice C02 K?',['Patologia respiratoria, in strada','Patologia cardiocircolatoria, in casa','Trauma, in un impianto sportivo','Intossicazione, in un esercizio pubblico'],1],
+['Quale lettera del codice luogo indica la strada?',['K','S','R','P'],1],
+['Qual è la prima cosa da fare arrivando sulla scena?',['Iniziare le compressioni','Valutare la sicurezza della scena','Chiamare il 112/118','Applicare il DAE'],1],
+['Cosa si valuta con la lettera C della sequenza ABCDE?',['Il circolo: polso ed emorragie','Il colore degli occhi','La capacità di parlare','Il livello di stress del soccorritore'],0],
+['Per quanto tempo al massimo si controlla il respiro (GAS)?',['30 secondi','20 secondi','10 secondi','5 minuti'],2],
+['Qual è il rapporto tra compressioni e ventilazioni nell\'adulto?',['15:2','30:2','10:1','5:1'],1],
+['A che profondità si comprime il torace in un adulto?',['1-2 cm','3-4 cm','5-6 cm','8-10 cm'],2],
+['A che frequenza si eseguono le compressioni toraciche?',['60-80 al minuto','100-120 al minuto','150-180 al minuto','40-50 al minuto'],1],
+['Dove si posizionano le piastre del DAE?',['Entrambe sul petto, vicine','Sotto clavicola destra e fianco sinistro sotto ascella','Sulla fronte e sul torace','Sulle braccia'],1],
+['Cosa si fa subito dopo uno shock del DAE?',['Si attende un minuto prima di agire','Si riprende subito la RCP','Si controlla il polso per 30 secondi','Si toglie il DAE'],1],
+['Persona cosciente con tosse debole per ostruzione: cosa si fa?',['Si aspetta che si risolva da sola','Colpi interscapolari e compressioni addominali alternati','Si inizia subito la RCP','Si dà da bere'],1],
+['Quando si usa la posizione laterale di sicurezza (PLS)?',['Paziente cosciente e collaborante','Paziente incosciente che non respira','Paziente incosciente che respira normalmente','Paziente con trauma cervicale sospetto'],2],
+['Cosa si fa con un oggetto conficcato in una ferita?',['Si rimuove subito','Non si rimuove: si blocca e si attendono i soccorsi','Si spinge più a fondo','Si ignora'],1],
+['Quando è giustificato spostare un ferito da trauma?',['Mai, in nessun caso','Solo se lo chiede lui','Solo in caso di pericolo immediato (fuoco, crolli, traffico)','Sempre, per comodità'],2]
+];
+let nickname='', isAdmin=false, db=null, curCode='', answers=new Array(Q.length).fill(-1);
+const $=id=>document.getElementById(id);
+function show(id){['gate','adminGate','admin','exam','result'].forEach(s=>$(s).classList.toggle('hide',s!==id));}
+async function getDb(){ try{ return await claude.use('db'); }catch(e){ return null; } }
+function randCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; }
+
+$('showAdmin').onclick=()=>show('adminGate');
+$('backGate').onclick=()=>show('gate');
+$('adminBtn').onclick=async ()=>{
+  if($('au').value.trim()===ADMIN_USER && $('ap').value===ADMIN_PASS){
+    isAdmin=true; db=await getDb(); await renderAdmin(); show('admin');
+  } else alert('Credenziali non valide.');
+};
+$('genBtn').onclick=async ()=>{
+  db=db||await getDb(); if(!db){alert('Servizio non disponibile.');return;}
+  const doc=await db.doc('exam/codes').get().catch(()=>null);
+  const codes=(doc&&doc.data)||{};
+  const c=randCode();
+  codes[c]={used:false};
+  await db.doc('exam/codes').set(codes).catch(()=>{});
+  renderAdmin();
+};
+async function renderAdmin(){
+  db=db||await getDb(); if(!db) return;
+  const doc=await db.doc('exam/codes').get().catch(()=>null);
+  const codes=(doc&&doc.data)||{};
+  const rows=Object.keys(codes).sort().map(c=>{
+    const v=codes[c];
+    const stato=v.used?'<span class="bad">Usato</span>':'<span class="ok">Disponibile</span>';
+    const esito=v.used?(v.pct>=PASS_PCT?'<span class="ok">Superato '+v.score+'/'+v.total+'</span>':'<span class="bad">Non superato '+v.score+'/'+v.total+'</span>'):'—';
+    return '<tr><td class="code">'+c+'</td><td>'+stato+'</td><td>'+(v.name||'—')+'</td><td>'+esito+'</td></tr>';
+  }).join('');
+  $('codeTbl').querySelector('tbody').innerHTML = rows || '<tr><td colspan="4" style="color:var(--muted)">Nessun codice generato.</td></tr>';
+}
+$('startBtn').onclick=async ()=>{
+  const n=$('name').value.trim(), c=$('code').value.trim().toUpperCase();
+  if(!n||!c){ alert('Inserisci nome e codice.'); return; }
+  db=await getDb(); if(!db){ alert('Servizio non disponibile al momento.'); return; }
+  const doc=await db.doc('exam/codes').get().catch(()=>null);
+  const codes=(doc&&doc.data)||{};
+  if(!codes[c]){ alert('Codice non riconosciuto.'); return; }
+  if(codes[c].used){ alert('Questo codice è già stato utilizzato.'); return; }
+  nickname=n; curCode=c; renderExam(); show('exam');
+};
+function renderExam(){
+  $('qWrap').innerHTML = Q.map((q,i)=>'<div class="qc"><div class="qn">Domanda '+(i+1)+'</div>'+q[0]+
+    q[1].map((o,j)=>'<button class="opt" data-q="'+i+'" data-o="'+j+'">'+o+'</button>').join('')+'</div>').join('');
+  document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const q=+b.dataset.q,o=+b.dataset.o; answers[q]=o;
+    document.querySelectorAll('.opt[data-q="'+q+'"]').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel'); updateProg();
+  });
+  updateProg();
+}
+function updateProg(){ $('prog').textContent=answers.filter(a=>a>=0).length+' / '+Q.length+' risposte'; }
+$('submitBtn').onclick=async ()=>{
+  if(answers.some(a=>a<0) && !confirm('Alcune domande sono senza risposta. Consegnare comunque?')) return;
+  let score=0; Q.forEach((q,i)=>{ if(answers[i]===q[2]) score++; });
+  const pct=score/Q.length;
+  const doc=await db.doc('exam/codes').get().catch(()=>null);
+  const codes=(doc&&doc.data)||{};
+  codes[curCode]={used:true,name:nickname,score,total:Q.length,pct,ts:Date.now()};
+  await db.doc('exam/codes').set(codes).catch(()=>{});
+  $('scoreBig').innerHTML = pct>=PASS_PCT? '<span class="ok">'+score+'/'+Q.length+'</span>' : '<span class="bad">'+score+'/'+Q.length+'</span>';
+  $('scoreMsg').innerHTML = (pct>=PASS_PCT? 'Esame superato. ':'Esame non superato. ')+'Soglia richiesta: '+Math.round(PASS_PCT*100)+'%. Risultato comunicato all\'istruttore.';
+  show('result');
+};
+</script>
+</body>
+</html>
