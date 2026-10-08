@@ -13,19 +13,19 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 body{background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,Segoe UI,system-ui,sans-serif}
 button{font:inherit;cursor:pointer}input,textarea,select{font:inherit}
 .center{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:28px;max-width:420px;width:100%;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:28px;max-width:500px;width:100%;box-shadow:0 8px 24px rgba(0,0,0,.12)}
 .crest{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;display:block;object-fit:cover;border:2px solid var(--navy)}
 .ttl{text-align:center;font-weight:800;font-size:1.1rem;letter-spacing:.02em}
 .sub{text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:18px}
 .f{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:10px}
-textarea.f{min-height:90px;resize:vertical}
+textarea.f{min-height:80px;resize:vertical}
 .btn{width:100%;padding:12px;border:none;border-radius:8px;background:var(--navy);color:#fff;font-weight:700;letter-spacing:.02em}
 .btn.gold{background:var(--gold)}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);width:auto}
 .btn.sm{width:auto;padding:8px 14px;font-weight:600;font-size:.85rem}
+.btn.danger{background:var(--red);color:#fff}
 .link{background:none;border:none;color:var(--muted);text-decoration:underline;font-size:.85rem;width:100%;margin-top:12px}
 .hide{display:none!important}
-.warn{background:#FFF3CD;border:1px solid #E7C66B;color:#6B4E00;padding:10px 14px;border-radius:8px;font-size:.85rem;margin-bottom:14px}
 .topbar{background:var(--navy);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 18px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
 .topbar .crest{width:34px;height:34px;margin:0;border-width:1px;flex-shrink:0}
 .topbar b{letter-spacing:.02em}
@@ -46,14 +46,11 @@ textarea.f{min-height:90px;resize:vertical}
 .navbar{display:flex;gap:10px;margin-top:18px}
 .navbar .btn{width:auto;padding:12px 20px}
 .big{font-size:2.6rem;font-weight:800;text-align:center;margin:10px 0}
-table{width:100%;border-collapse:collapse;font-size:.86rem;background:var(--panel)}
-td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
-.ok{color:var(--green);font-weight:700}.bad{color:var(--red);font-weight:700}
-.code{font-family:monospace}
-.tabs{display:flex;gap:8px;margin-bottom:16px}
-.tab{padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
-.tab.on{background:var(--navy);color:#fff}
 .cred{background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:10px;margin-top:10px;font-family:monospace}
+.q-item{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab{padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.tab.on{background:var(--navy);color:#fff}
 </style>
 </head>
 <body>
@@ -61,7 +58,7 @@ td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
 <!-- LOGIN CANDIDATO -->
 <div id="login" class="center">
 <div class="card">
-<div class="crest"></div>
+<img class="crest logo-img" src="" alt="Logo">
 <div class="ttl">ESAME DI TEORIA</div>
 <div class="sub">Corso Soccorritori · ASL Napoli</div>
 <input class="f" id="u" placeholder="Nome utente">
@@ -74,7 +71,7 @@ td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
 <!-- GATE ADMIN -->
 <div id="adminGate" class="center hide">
 <div class="card">
-<div class="crest"></div>
+<img class="crest logo-img" src="" alt="Logo">
 <div class="ttl">AREA ISTRUTTORI</div>
 <input class="f" id="au" placeholder="Nome utente">
 <input class="f" id="ap" type="password" placeholder="Password">
@@ -85,21 +82,49 @@ td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
 
 <!-- PANNELLO ADMIN -->
 <div id="admin" class="hide">
-<div class="topbar"><div class="crest"></div><b>PANNELLO ISTRUTTORI</b><span style="margin-left:auto"></span><button class="btn ghost sm" onclick="location.reload()">Esci</button></div>
+<div class="topbar"><img class="crest logo-img" src="" alt="Logo"><b>PANNELLO ISTRUTTORI</b><span style="margin-left:auto"></span><button class="btn ghost sm" style="color:#fff;border-color:#fff" onclick="location.reload()">Esci</button></div>
 <div class="wrap">
-<div class="card" style="max-width:none;margin-bottom:18px">
-<h3>Crea Nuove Credenziali Candidate</h3>
-<input class="f" id="candUser" placeholder="Username Candidato (es. candidato1)">
-<input class="f" id="candPass" placeholder="Password">
-<button class="btn gold" id="genBtn">Genera e Salva in Database</button>
-<div id="genOut"></div>
-</div>
+  <div class="tabs">
+    <button class="tab on" id="tabUsersBtn" onclick="switchAdminTab('users')">Gestione Utenti</button>
+    <button class="tab" id="tabQuestionsBtn" onclick="switchAdminTab('questions')">Gestione Domande</button>
+  </div>
+
+  <!-- TAB UTENTI -->
+  <div id="tabUsers">
+    <div class="card" style="max-width:none;margin-bottom:18px">
+      <h3>Crea Nuove Credenziali Candidate</h3>
+      <input class="f" id="candUser" placeholder="Username Candidato (es. candidato1)">
+      <input class="f" id="candPass" placeholder="Password">
+      <button class="btn gold" id="genBtn">Genera e Salva in Database</button>
+      <div id="genOut"></div>
+    </div>
+  </div>
+
+  <!-- TAB DOMANDE -->
+  <div id="tabQuestions" class="hide">
+    <div class="card" style="max-width:none;margin-bottom:18px">
+      <h3 id="qFormTitle">Aggiungi Nuova Domanda</h3>
+      <input type="hidden" id="editQIdx" value="-1">
+      <textarea class="f" id="qTextInp" placeholder="Testo della domanda"></textarea>
+      <input class="f" id="opt0" placeholder="Opzione A (Corretta)">
+      <input class="f" id="opt1" placeholder="Opzione B">
+      <input class="f" id="opt2" placeholder="Opzione C">
+      <input class="f" id="opt3" placeholder="Opzione D">
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn gold" id="saveQBtn">Salva Domanda</button>
+        <button class="btn ghost hide" id="cancelQBtn" onclick="resetQForm()">Annulla</button>
+      </div>
+    </div>
+
+    <h3>Elenco Domande Attuali</h3>
+    <div id="qList"></div>
+  </div>
 </div>
 </div>
 
 <!-- SCHERMATA ESAME -->
 <div id="exam" class="hide">
-<div class="topbar"><div class="crest"></div><b>ESAME DI TEORIA</b><span class="timer" id="timer">30:00</span></div>
+<div class="topbar"><img class="crest logo-img" src="" alt="Logo"><b>ESAME DI TEORIA</b><span class="timer" id="timer">30:00</span></div>
 <div class="wrap">
 <div class="secLbl" id="secLbl"></div>
 <div class="navgrid" id="navgrid"></div>
@@ -121,7 +146,7 @@ td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
 <!-- RISULTATO -->
 <div id="result" class="center hide">
 <div class="card">
-<div class="crest"></div>
+<img class="crest logo-img" src="" alt="Logo">
 <div class="ttl">RISULTATO ESAME</div>
 <div class="big" id="scoreBig"></div>
 <p id="scoreMsg" style="text-align:center"></p>
@@ -129,16 +154,24 @@ td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
 </div>
 
 <script>
+// IMPOSTA QUI IL LINK DEL TUO LOGO
+const LOGO_URL = 'https://images-ext-1.discordapp.net/external/bjeG4x_RJ5RxBEI1lRzHlSGbCuTbItdv384-fb4FicQ/%3Fsize%3D4096/https/cdn.discordapp.com/avatars/1524891021929091083/3365a994cc6d40d48b240eaed5be6ee7.png?format=webp&quality=lossless&width=320&height=320';
+
 const ADMIN_USER='ISTRUTTORE-ASL-NAPOLI', ADMIN_PASS='c0rs1naples2026', DURATION=30*60*1000;
-const MCQ=[
+
+let MCQ = JSON.parse(localStorage.getItem('asl_questions')) || [
   ['Quali sono i cinque dati da comunicare al 112/118?',['Dove, cosa è successo, quante persone, come stanno, chi sei','Solo l\'indirizzo','Nome del paziente e codice fiscale','Il numero di targa dei veicoli coinvolti'],0],
   ['Cosa significa il codice C02 K?',['Patologia respiratoria, in strada','Patologia cardiocircolatoria, in casa','Trauma, in un impianto sportivo','Intossicazione, in un esercizio pubblico'],1],
   ['Quale lettera del codice luogo indica la strada?',['K','S','R','P'],1],
   ['Qual è la prima cosa da fare arrivando sulla scena?',['Iniziare le compressioni','Valutare la sicurezza della scena','Chiamare il 112/118','Applicare il DAE'],1]
 ];
 
-let curUser='', deadline=0, cur=0, answers=new Array(MCQ.length).fill(null), timerId=null;
+let curUser='', deadline=0, cur=0, answers=[], timerId=null;
 const $=id=>document.getElementById(id);
+
+// Applica l'immagine del logo a tutte le targhette
+document.querySelectorAll('.logo-img').forEach(img => img.src = LOGO_URL);
+
 function show(id){['login','adminGate','admin','exam','result'].forEach(s=>$(s).classList.toggle('hide',s!==id));}
 
 $('showAdmin').onclick=()=>show('adminGate');$('backLogin').onclick=()=>show('login');
@@ -147,10 +180,17 @@ $('showAdmin').onclick=()=>show('adminGate');$('backLogin').onclick=()=>show('lo
 $('adminBtn').onclick=()=>{
   if($('au').value.trim()===ADMIN_USER &&$('ap').value===ADMIN_PASS){
     show('admin');
+    renderQList();
   } else alert('Credenziali Admin non valide.');
 };
 
-// CREAZIONE UTENTE DA PARTE DELL'ADMIN (Connesso al Database)
+// TAB ADMIN
+function switchAdminTab(tab){
+  $('tabUsers').classList.toggle('hide', tab!=='users');$('tabQuestions').classList.toggle('hide', tab!=='questions');
+  $('tabUsersBtn').classList.toggle('on', tab==='users');$('tabQuestionsBtn').classList.toggle('on', tab==='questions');
+}
+
+// CREAZIONE UTENTE CANDIDATO
 $('genBtn').onclick=async ()=>{
   const username=$('candUser').value.trim();
   const password=$('candPass').value.trim();
@@ -166,24 +206,76 @@ $('genBtn').onclick=async ()=>{
     if(res.ok) {
       $('genOut').innerHTML = '<div class="cred">Utente <b>'+username+'</b> salvato con successo nel Database!</div>';
       $('candUser').value = '';$('candPass').value = '';
-    } else {
-      alert('Errore: ' + data.error);
-    }
+    } else alert('Errore: ' + data.error);
   } catch(e) {
     alert('Errore di rete nell\'invio dati.');
   }
 };
 
-// ACCESSO CANDIDATO ALL'ESAME
-$('loginBtn').onclick=async ()=>{
+// MODIFICA/AGGIUNTA DOMANDE
+function renderQList(){
+  $('qList').innerHTML = MCQ.map((q, idx) => `
+    <div class="q-item">
+      <div>
+        <strong>${idx + 1}. ${q[0]}</strong>
+        <div style="color:var(--muted);font-size:0.85rem">Risposta corretta: ${q[1][q[2]]}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm ghost" onclick="editQ(${idx})">Modifica</button>
+        <button class="btn sm danger" onclick="deleteQ(${idx})">Elimina</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+$('saveQBtn').onclick = () => {
+  const text = $('qTextInp').value.trim();
+  const opts = [$('opt0').value.trim(),$('opt1').value.trim(), $('opt2').value.trim(),$('opt3').value.trim()];
+  const editIdx = parseInt($('editQIdx').value);
+
+  if(!text || opts.some(o => !o)){ alert('Compila il testo e tutte e 4 le risposte.'); return; }
+
+  if(editIdx >= 0) {
+    MCQ[editIdx] = [text, opts, 0];
+  } else {
+    MCQ.push([text, opts, 0]);
+  }
+
+  localStorage.setItem('asl_questions', JSON.stringify(MCQ));
+  resetQForm();
+  renderQList();
+};
+
+function editQ(idx){
+  const q = MCQ[idx];
+  $('qTextInp').value = q[0];$('opt0').value = q[1][0];
+  $('opt1').value = q[1][1];$('opt2').value = q[1][2];
+  $('opt3').value = q[1][3];$('editQIdx').value = idx;
+  $('qFormTitle').textContent = 'Modifica Domanda #' + (idx + 1);
+  $('cancelQBtn').classList.remove('hide');
+}
+
+function deleteQ(idx){
+  if(confirm('Sei sicuro di voler eliminare questa domanda?')){
+    MCQ.splice(idx, 1);
+    localStorage.setItem('asl_questions', JSON.stringify(MCQ));
+    renderQList();
+  }
+}
+
+function resetQForm(){
+  $('qTextInp').value = '';$('opt0').value = ''; $('opt1').value = '';$('opt2').value = ''; $('opt3').value = '';$('editQIdx').value = '-1';
+  $('qFormTitle').textContent = 'Aggiungi Nuova Domanda';$('cancelQBtn').classList.add('hide');
+}
+
+// ACCESSO CANDIDATO
+$('loginBtn').onclick=()=>{
   const u=$('u').value.trim(), p=$('p').value;
   if(!u||!p){ alert('Inserisci nome utente e password.'); return; }
 
-  // Salviamo lo username nella sessione locale
   curUser = u;
-  localStorage.setItem('candidato_username', u);
+  answers = new Array(MCQ.length).fill(null);
 
-  // Inizio Esame e Timer Sincronizzato con LocalStorage
   let startTime = localStorage.getItem('esame_start_' + curUser);
   if(!startTime) {
     startTime = Date.now();
@@ -213,7 +305,6 @@ function renderExam(){
 
 $('prevB').onclick=()=>{ if(cur>0){cur--;renderExam();} };$('nextB').onclick=()=>{ if(cur<MCQ.length-1){cur++;renderExam();} };
 
-// TIMER RESISTENTE AL REFRESH
 function startTimer(){
   clearInterval(timerId);
   timerId=setInterval(()=>{
@@ -232,7 +323,6 @@ function startTimer(){
 
 $('submitB').onclick=()=>{ if(confirm('Confermi la consegna dell\'esame?')) finish(); };
 
-// CONSEGNA E SALVATAGGIO SU DATABASE SUPABASE
 async function finish(){
   clearInterval(timerId);
   let score=0;
@@ -254,7 +344,7 @@ async function finish(){
     if(res.ok) {
       localStorage.removeItem('esame_start_' + curUser);
       $('scoreBig').innerHTML = '<span class="ok">'+score+'/'+MCQ.length+'</span>';
-      $('scoreMsg').innerHTML = 'Esame completato e salvato nel Database con successo!';
+      $('scoreMsg').innerHTML = 'Esame completato e salvato nel Database!';
       show('result');
     } else {
       alert('Errore durante il salvataggio dell\'esame nel server.');
