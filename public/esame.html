@@ -129,17 +129,30 @@ h3.h{margin:22px 0 10px}
 </div>
 </div>
 
-<div id="result" class="center hide">
+<div id="submitted" class="center hide">
 <div class="card">
 <div class="crest"></div>
-<div class="ttl">RISULTATO ESAME</div>
-<div class="big" id="scoreBig"></div>
-<p id="scoreMsg" style="text-align:center"></p>
+<div class="ttl">ESAME CONSEGNATO</div>
+<p style="text-align:center">La consegna dell'esame è stata registrata correttamente.<br>Il risultato sarà comunicato dall'istruttore.</p>
 </div>
 </div>
 
 <script>
 const ADMIN_USER='ISTRUTTORE-ASL-NAPOLI', ADMIN_PASS='c0rs1naples2026', PASS_PCT=0.8, DURATION=30*60*1000;
+
+// Protezione base contro copia/incolla/selezione durante l'esame.
+document.addEventListener('copy',e=>{ if(document.getElementById('exam') && !document.getElementById('exam').classList.contains('hide')) e.preventDefault(); });
+document.addEventListener('cut',e=>{ if(document.getElementById('exam') && !document.getElementById('exam').classList.contains('hide')) e.preventDefault(); });
+document.addEventListener('paste',e=>{ if(document.getElementById('exam') && !document.getElementById('exam').classList.contains('hide')) e.preventDefault(); });
+document.addEventListener('drop',e=>{ if(document.getElementById('exam') && !document.getElementById('exam').classList.contains('hide')) e.preventDefault(); });
+document.addEventListener('contextmenu',e=>{ if(document.getElementById('exam') && !document.getElementById('exam').classList.contains('hide')) e.preventDefault(); });
+document.addEventListener('selectstart',e=>{ if(document.getElementById('exam') && !document.getElementById('exam').classList.contains('hide')) e.preventDefault(); });
+document.addEventListener('keydown',e=>{
+  const examVisible=document.getElementById('exam') && !document.getElementById('exam').classList.contains('hide');
+  if(!examVisible) return;
+  const k=(e.key||'').toLowerCase();
+  if((e.ctrlKey||e.metaKey) && ['c','v','x','a'].includes(k)){ e.preventDefault(); }
+});
 const DEFAULT_MCQ=[
 ['Quali sono i cinque dati da comunicare al 112/118?',['Dove, cosa è successo, quante persone, come stanno, chi sei','Solo l\'indirizzo','Nome del paziente e codice fiscale','Il numero di targa dei veicoli coinvolti'],0],
 ['Cosa significa il codice C02 K?',['Patologia respiratoria, in strada','Patologia cardiocircolatoria, in casa','Trauma, in un impianto sportivo','Intossicazione, in un esercizio pubblico'],1],
@@ -194,24 +207,12 @@ function buildSeq(){
   CASES.forEach(c=>SEQ.push({sec:3,type:'open',scen:c[0],q:c[1]}));
 }
 async function loadQuestions(){
-  db=db||await getDb();
-  if(!db){ buildSeq(); return; }
-  let doc;
-  try{
-    doc=await db.doc('exam/questions').get();
-  }catch(e){
-    // Non sostituire MAI le domande con quelle di default se Supabase non risponde.
-    // Manteniamo quelle già caricate in memoria e segnaliamo l'errore al chiamante.
-    buildSeq();
-    throw e;
-  }
+  db=db||await getDb(); if(!db){ buildSeq(); return; }
+  const doc=await db.doc('exam/questions').get().catch(()=>null);
   const d=doc&&doc.data;
-  if(d && Array.isArray(d.mcq) && d.mcq.length) MCQ=d.mcq;
-  else if(!d) MCQ=DEFAULT_MCQ;
-  if(d && Array.isArray(d.open) && d.open.length) OPEN=d.open;
-  else if(!d) OPEN=DEFAULT_OPEN;
-  if(d && Array.isArray(d.cases) && d.cases.length) CASES=d.cases;
-  else if(!d) CASES=DEFAULT_CASES;
+  MCQ=(d&&d.mcq&&d.mcq.length)?d.mcq:DEFAULT_MCQ;
+  OPEN=(d&&d.open&&d.open.length)?d.open:DEFAULT_OPEN;
+  CASES=(d&&d.cases&&d.cases.length)?d.cases:DEFAULT_CASES;
   buildSeq();
 }
 async function checkPerms(){
@@ -235,11 +236,10 @@ $('adminBtn').onclick=async ()=>{
     db=db||await getDb();
     await checkPerms();
     await loadQuestions();
+    renderQEdit();
   }catch(e){
-    alert('Accesso riuscito, ma non è stato possibile caricare le domande da Supabase.\n'+errMsg(e));
+    alert('Accesso riuscito, ma non è stato possibile caricare i dati da Supabase.\n'+errMsg(e));
   }
-  // Mostra comunque le domande attualmente disponibili senza sostituirle con dati vuoti.
-  renderQEdit();
 
   try{
     await renderCands();
@@ -305,13 +305,9 @@ $('saveQ').onclick=async ()=>{
   });
   const open_=[]; document.querySelectorAll('#openList .qedit .qtxt').forEach(t=>open_.push(t.value.trim()));
   const cases=[]; document.querySelectorAll('#caseList .qedit').forEach(el=>cases.push([el.querySelector('.scenTxt').value.trim(), el.querySelector('.qtxt').value.trim()]));
-  if(!mcq.length && !open_.length && !cases.length){
-    alert('Salvataggio annullato: non risultano domande. Le domande esistenti non verranno cancellate.');
-    return;
-  }
   MCQ=mcq; OPEN=open_; CASES=cases;
   db=db||await getDb();
-  try{ await db.doc('exam/questions').set({mcq:MCQ,open:OPEN,cases:CASES}); buildSeq(); alert('Domande salvate.'); }
+  try{ await db.doc('exam/questions').set({mcq:MCQ,open:OPEN,cases:CASES}); alert('Domande salvate.'); }
   catch(e){ alert('Impossibile salvare le domande.\\n'+errMsg(e)); }
 };
 
@@ -330,12 +326,7 @@ $('loginBtn').onclick=async ()=>{
     catch(e){ alert('Impossibile avviare l\'esame.\\n'+errMsg(e)); return; }
   }
   deadline = c.startedAt + DURATION;
-  try{
-    await loadQuestions();
-  }catch(e){
-    alert('Accesso riuscito, ma non è stato possibile caricare le domande da Supabase.\n'+errMsg(e));
-    return;
-  }
+  await loadQuestions();
   answers = new Array(SEQ.length).fill(null);
   cur=0; renderExam(); startTimer(); show('exam');
 };
@@ -386,9 +377,7 @@ async function finish(timeout){
   try{
     await db.collection('candidates').doc(curUser).update({used:true,score,autototal,pct,answers,questionsSnapshot:SEQ,ts:Date.now()});
   }catch(e){ alert('Attenzione: non è stato possibile registrare l\'esame.\\n'+errMsg(e)); }
-  $('scoreBig').innerHTML = pct>=PASS_PCT? '<span class="ok">'+score+'/'+autototal+'</span>' : '<span class="bad">'+score+'/'+autototal+'</span>';
-  $('scoreMsg').innerHTML = (timeout?'Tempo scaduto. ':'')+(pct>=PASS_PCT? 'Sezione a risposta multipla superata. ':'Sezione a risposta multipla non superata. ')+'Soglia richiesta: '+Math.round(PASS_PCT*100)+'%.<br>Le domande aperte e i casi reali saranno valutati dall\'istruttore.';
-  show('result');
+  show('submitted');
 }
 
 async function makePdf(username){
