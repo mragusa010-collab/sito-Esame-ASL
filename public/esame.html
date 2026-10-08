@@ -132,9 +132,8 @@ h3.h{margin:22px 0 10px}
 <div id="result" class="center hide">
 <div class="card">
 <div class="crest"></div>
-<div class="ttl">RISULTATO ESAME</div>
-<div class="big" id="scoreBig"></div>
-<p id="scoreMsg" style="text-align:center"></p>
+<div class="ttl">ESAME CONSEGNATO</div>
+<p style="text-align:center">La prova è stata consegnata correttamente.<br>Il risultato sarà comunicato dall'istruttore.</p>
 </div>
 </div>
 
@@ -349,8 +348,6 @@ async function finish(timeout){
   try{
     await db.collection('candidates').doc(curUser).update({used:true,score,autototal,pct,answers,questionsSnapshot:SEQ,ts:Date.now()});
   }catch(e){ alert('Attenzione: non è stato possibile registrare l\'esame.\\n'+errMsg(e)); }
-  $('scoreBig').innerHTML = pct>=PASS_PCT? '<span class="ok">'+score+'/'+autototal+'</span>' : '<span class="bad">'+score+'/'+autototal+'</span>';
-  $('scoreMsg').innerHTML = (timeout?'Tempo scaduto. ':'')+(pct>=PASS_PCT? 'Sezione a risposta multipla superata. ':'Sezione a risposta multipla non superata. ')+'Soglia richiesta: '+Math.round(PASS_PCT*100)+'%.<br>Le domande aperte e i casi reali saranno valutati dall\'istruttore.';
   show('result');
 }
 
@@ -394,6 +391,22 @@ async function makePdf(username){
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(e){alert('Download annullato o non disponibile.');}
 }
+
+/* Blocco copia, taglia, incolla, selezione e menu contestuale durante l'esame. */
+document.addEventListener('copy', e => e.preventDefault());
+document.addEventListener('cut', e => e.preventDefault());
+document.addEventListener('paste', e => e.preventDefault());
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('dragstart', e => e.preventDefault());
+document.addEventListener('selectstart', e => {
+  if(document.getElementById('exam') && !document.getElementById('exam').classList.contains('hide')) e.preventDefault();
+});
+document.addEventListener('keydown', e => {
+  if(!document.getElementById('exam') || document.getElementById('exam').classList.contains('hide')) return;
+  const k=String(e.key).toLowerCase();
+  if((e.ctrlKey || e.metaKey) && ['c','v','x','a'].includes(k)) e.preventDefault();
+});
+
 </script>
 </body>
 </html>
