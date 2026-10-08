@@ -68,6 +68,7 @@ h3.h{margin:22px 0 10px}
 <div class="ttl">ESAME DI TEORIA</div>
 <div class="sub">Corso Soccorritori · ASL Napoli</div>
 <input class="f" id="u" placeholder="Nome utente">
+<input class="f" id="email" type="email" autocomplete="email" placeholder="Email">
 <input class="f" id="p" type="password" placeholder="Password">
 <button class="btn" id="loginBtn">ACCEDI ALL'ESAME</button>
 <button class="link" id="showAdmin">Area istruttori</button>
@@ -94,6 +95,7 @@ h3.h{margin:22px 0 10px}
 <div id="candPane">
 <div class="card" style="max-width:none;margin-bottom:18px">
 <input class="f" id="candName" placeholder="Nome e cognome del candidato">
+<input class="f" id="candEmail" type="email" autocomplete="email" placeholder="Email del candidato">
 <button class="btn gold" id="genBtn">Genera credenziali</button>
 <div id="genOut"></div>
 </div>
@@ -223,16 +225,21 @@ $('tabCand').onclick=()=>{ $('tabCand').classList.add('on'); $('tabQ').classList
 $('tabQ').onclick=()=>{ $('tabQ').classList.add('on'); $('tabCand').classList.remove('on'); $('qPane').classList.remove('hide'); $('candPane').classList.add('hide'); };
 
 $('genBtn').onclick=async ()=>{
-  const name=$('candName').value.trim(); if(!name){ alert('Inserisci nome e cognome.'); return; }
+  const name=$('candName').value.trim();
+  const email=$('candEmail').value.trim().toLowerCase();
+  if(!name){ alert('Inserisci nome e cognome.'); return; }
+  if(!email || !email.includes('@')){ alert('Inserisci una mail valida.'); return; }
   db=db||await getDb(); if(!db){ alert('Servizio non disponibile.'); return; }
   const user_='CND-'+randStr(5), pass=randStr(8);
   try{
-    await db.collection('candidates').doc(user_).set({password:pass,name,used:false,createdAt:Date.now()});
-    $('genOut').innerHTML='<div class="cred">Utente: <b>'+user_+'</b><br>Password: <b>'+pass+'</b><br><small>Comunica queste credenziali al candidato.</small></div>';
+    await db.collection('candidates').doc(user_).set({password:pass,name,email,used:false,createdAt:Date.now()});
+    $('genOut').innerHTML='<div class="cred">Utente: <b>'+user_+'</b><br>Email: <b>'+email+'</b><br>Password: <b>'+pass+'</b><br><small>Comunica queste credenziali al candidato.</small></div>';
     $('candName').value='';
+    $('candEmail').value='';
     await renderCands();
-  }catch(e){ alert('Impossibile salvare le credenziali.\\n'+errMsg(e)); }
+  }catch(e){ alert('Impossibile salvare le credenziali.\n'+errMsg(e)); }
 };
+
 async function renderCands(){
   db=db||await getDb(); if(!db) return;
   const snap=await db.collection('candidates').get().catch(e=>{alert('Impossibile leggere i candidati.\\n'+errMsg(e));return null;});
@@ -283,12 +290,13 @@ $('saveQ').onclick=async ()=>{
 };
 
 $('loginBtn').onclick=async ()=>{
-  const u=$('u').value.trim(), p=$('p').value;
-  if(!u||!p){ alert('Inserisci nome utente e password.'); return; }
+  const u=$('u').value.trim(), email=$('email').value.trim().toLowerCase(), p=$('p').value;
+  if(!u||!email||!p){ alert('Inserisci nome utente, mail e password.'); return; }
+  if(!email.includes('@')){ alert('Inserisci una mail valida.'); return; }
   db=db||await getDb(); if(!db){ alert('Servizio non disponibile al momento.'); return; }
   const doc=await db.collection('candidates').doc(u).get().catch(()=>null);
   const c=doc&&doc.exists?doc.data():null;
-  if(!c || c.password!==p){ alert('Credenziali non valide.'); return; }
+  if(!c || c.password!==p || String(c.email||'').trim().toLowerCase()!==email){ alert('Credenziali non valide. La mail deve essere quella associata alla credenziale.'); return; }
   if(c.used){ alert('Hai già completato questo esame.'); return; }
   curUser=u;
   if(!c.startedAt){
