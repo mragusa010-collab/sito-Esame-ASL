@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Esame di Teoria · Soccorritori ASL Napoli</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#EEF1F5;--panel:#fff;--ink:#16202B;--muted:#5B6B7A;--line:#D6DCE3;--navy:#0B2A4A;--red:#C62828;--green:#1E7D32;--gold:#C98A12;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -67,10 +68,17 @@ h3.h{margin:22px 0 10px}
 <div class="crest"></div>
 <div class="ttl">ESAME DI TEORIA</div>
 <div class="sub">Corso Soccorritori · ASL Napoli</div>
+<div id="googleStep">
+<div class="sub" style="margin-bottom:10px">Per accedere devi prima autenticarti con il tuo account Google.</div>
+<button class="btn" id="googleLoginBtn">ACCEDI CON GOOGLE</button>
+</div>
+<div id="credentialStep" class="hide">
+<div class="ok" id="googleIdentity"></div>
 <input class="f" id="u" placeholder="Nome utente">
-<input class="f" id="email" type="email" autocomplete="email" placeholder="Email">
 <input class="f" id="p" type="password" placeholder="Password">
 <button class="btn" id="loginBtn">ACCEDI ALL'ESAME</button>
+<button class="link" id="googleLogoutBtn">Cambia account Google</button>
+</div>
 <button class="link" id="showAdmin">Area istruttori</button>
 </div>
 </div>
@@ -170,6 +178,7 @@ const DEFAULT_CASES=[
 ['Stai assistendo a una persona cosciente che, durante un pranzo, inizia improvvisamente a portarsi le mani alla gola, senza riuscire a parlare né a tossire in modo efficace.','Quale manovra esegui e come la conduci correttamente?']
 ];
 let db=null, user=null, canWrite=false, MCQ=DEFAULT_MCQ, OPEN=DEFAULT_OPEN, CASES=DEFAULT_CASES;
+let supabaseClient=null, googleEmail=null;
 let curUser='', deadline=0, cur=0, answers=[], timerId=null, SEQ=[];
 const $=id=>document.getElementById(id);
 function show(id){['login','adminGate','admin','exam','result'].forEach(s=>$(s).classList.toggle('hide',s!==id));}
@@ -213,6 +222,47 @@ async function checkPerms(){
   canWrite=true;
   $('permWarn').classList.toggle('hide', !!canWrite);
 }
+
+async function initGoogleAuth(){
+  try{
+    const cfg=await api('config');
+    if(!window.supabase || !cfg || !cfg.url || !cfg.anonKey) throw new Error('Configurazione Google/Supabase non disponibile.');
+    supabaseClient=window.supabase.createClient(cfg.url,cfg.anonKey);
+    supabaseClient.auth.onAuthStateChange((event,session)=>{
+      if(session && session.user && session.user.email){
+        googleEmail=String(session.user.email).trim().toLowerCase();
+        $('googleIdentity').textContent='Account Google autenticato: '+googleEmail;
+        $('googleStep').classList.add('hide');
+        $('credentialStep').classList.remove('hide');
+      }else if(event==='SIGNED_OUT'){
+        googleEmail=null;
+        $('googleStep').classList.remove('hide');
+        $('credentialStep').classList.add('hide');
+      }
+    });
+    const {data}=await supabaseClient.auth.getSession();
+    const session=data&&data.session;
+    if(session && session.user && session.user.email){
+      googleEmail=String(session.user.email).trim().toLowerCase();
+      $('googleIdentity').textContent='Account Google autenticato: '+googleEmail;
+      $('googleStep').classList.add('hide');
+      $('credentialStep').classList.remove('hide');
+    }
+  }catch(e){
+    console.error('Google Auth:',e);
+  }
+}
+$('googleLoginBtn').onclick=async()=>{
+  try{
+    if(!supabaseClient) await initGoogleAuth();
+    if(!supabaseClient) throw new Error('Servizio Google non disponibile.');
+    const {error}=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
+    if(error) throw error;
+  }catch(e){ alert('Impossibile accedere con Google.\n'+errMsg(e)); }
+};
+$('googleLogoutBtn').onclick=async()=>{
+  if(supabaseClient) await supabaseClient.auth.signOut();
+};
 
 $('showAdmin').onclick=()=>show('adminGate');
 $('backLogin').onclick=()=>show('login');
@@ -290,24 +340,32 @@ $('saveQ').onclick=async ()=>{
 };
 
 $('loginBtn').onclick=async ()=>{
-  const u=$('u').value.trim(), email=$('email').value.trim().toLowerCase(), p=$('p').value;
-  if(!u||!email||!p){ alert('Inserisci nome utente, mail e password.'); return; }
-  if(!email.includes('@')){ alert('Inserisci una mail valida.'); return; }
+  const u=$('u').value.trim(), p=$('p').value;
+  if(!googleEmail){ alert('Devi prima accedere con Google.'); return; }
+  if(!u||!p){ alert('Inserisci nome utente e password.'); return; }
   db=db||await getDb(); if(!db){ alert('Servizio non disponibile al momento.'); return; }
-  const doc=await db.collection('candidates').doc(u).get().catch(()=>null);
-  const c=doc&&doc.exists?doc.data():null;
-  if(!c || c.password!==p || String(c.email||'').trim().toLowerCase()!==email){ alert('Credenziali non valide. La mail deve essere quella associata alla credenziale.'); return; }
-  if(c.used){ alert('Hai già completato questo esame.'); return; }
-  curUser=u;
-  if(!c.startedAt){
-    c.startedAt=Date.now();
-    try{ await db.collection('candidates').doc(u).update({startedAt:c.startedAt}); }
-    catch(e){ alert('Impossibile avviare l\'esame.\\n'+errMsg(e)); return; }
+  try{
+    const sessionResult=await supabaseClient.auth.getSession();
+    const session=sessionResult&&sessionResult.data&&sessionResult.data.session;
+    if(!session || !session.access_token){ alert('Sessione Google non valida. Accedi nuovamente con Google.'); return; }
+    const r=await fetch('/api/candidates/'+encodeURIComponent(u)+'/login',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({password:p})});
+    const data=await r.json().catch(()=>null);
+    if(!r.ok) throw new Error(data&&data.error?data.error:'Credenziali non valide.');
+    const c=data;
+    if(c.used){ alert('Hai già completato questo esame.'); return; }
+    curUser=u;
+    if(!c.startedAt){
+      c.startedAt=Date.now();
+      try{ await db.collection('candidates').doc(u).update({startedAt:c.startedAt}); }
+      catch(e){ alert('Impossibile avviare l\'esame.\n'+errMsg(e)); return; }
+    }
+    deadline = c.startedAt + DURATION;
+    await loadQuestions();
+    answers = new Array(SEQ.length).fill(null);
+    cur=0; renderExam(); startTimer(); show('exam');
+  }catch(e){
+    alert(errMsg(e));
   }
-  deadline = c.startedAt + DURATION;
-  await loadQuestions();
-  answers = new Array(SEQ.length).fill(null);
-  cur=0; renderExam(); startTimer(); show('exam');
 };
 
 const SECNAMES=['','SEZIONE 1 · RISPOSTA MULTIPLA','SEZIONE 2 · DOMANDE APERTE','SEZIONE 3 · CASI REALI'];
@@ -414,6 +472,8 @@ document.addEventListener('keydown', e => {
   const k=String(e.key).toLowerCase();
   if((e.ctrlKey || e.metaKey) && ['c','v','x','a'].includes(k)) e.preventDefault();
 });
+
+initGoogleAuth();
 
 </script>
 </body>
