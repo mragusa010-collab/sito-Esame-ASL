@@ -8,12 +8,12 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inizializzazione client Supabase dalle variabili d'ambiente Vercel
+// Client Supabase (Recupera credenziali da variabili d'ambiente)
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// API per la creazione di un account da parte dell'Admin
+// API Admin per Creazione Utente
 app.post('/api/admin/create-user', async (req, res) => {
   const { username, password, ruolo } = req.body;
 
@@ -28,18 +28,18 @@ app.post('/api/admin/create-user', async (req, res) => {
       .insert([{ username, password: hashedPassword, ruolo: ruolo || 'candidato' }]);
 
     if (error) throw error;
-    res.json({ message: 'Utente creato e salvato nel database con successo' });
+    res.json({ message: 'Utente registrato nel Database' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// API per l'invio delle risposte dell'esame
+// API Consegna Esame
 app.post('/api/esame/submit', async (req, res) => {
   const { username, risposte, tempoImpiegato } = req.body;
 
   if (!username || !risposte) {
-    return res.status(400).json({ error: 'Dati esame mancanti' });
+    return res.status(400).json({ error: 'Dati incompleti' });
   }
 
   try {
@@ -55,11 +55,11 @@ app.post('/api/esame/submit', async (req, res) => {
       ]);
 
     if (error) throw error;
-    res.json({ message: 'Esame inviato e salvato con successo' });
+    res.json({ message: 'Esame salvato con successo nel Database' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log('Server avviato sulla porta ' + port));
+app.listen(port, () => console.log('Server attivo sulla porta ' + port));
