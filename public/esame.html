@@ -256,7 +256,7 @@ $('googleLoginBtn').onclick=async()=>{
   try{
     if(!supabaseClient) await initGoogleAuth();
     if(!supabaseClient) throw new Error('Servizio Google non disponibile.');
-    const {error}=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
+    const {error}=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin + window.location.pathname}});
     if(error) throw error;
   }catch(e){ alert('Impossibile accedere con Google.\n'+errMsg(e)); }
 };
